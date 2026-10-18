@@ -12,7 +12,7 @@ installed on the iPhone with **Safari → Share → Add to Home Screen**.
 - Live Arabic transcription (`ar-EG`) using Safari's built-in speech recognition — free
 - Optional audio recording of the whole session
 - After each recording: optional title, location, picture (camera or photos), PDF, category; editable transcript
-- **Summarize with Claude**: copies the transcript + instructions and opens claude.ai, so your Claude plan does the
+- **✨ Summarize** with a free AI (Groq, Gemini, OpenRouter or local Ollama), or **Summarize with Claude**: copies the transcript + instructions and opens claude.ai, so your Claude plan does the
   summary for free; paste the bullets back and they're saved with the recording
 - Search inside a category; works on your laptop too (same account)
 
@@ -40,6 +40,27 @@ installed on the iPhone with **Safari → Share → Add to Home Screen**.
 2. Make sure **Settings → Siri (or Apple Intelligence & Siri) → Siri & Dictation / Dictation** is on — Safari's speech
    recognition depends on it.
 3. Allow the microphone when asked.
+
+## AI summaries (free)
+In the app: **Settings → AI summaries** → pick a provider, paste a key, **Test**, **Save**. Recordings then get a one-tap
+**✨ Summarize** button (the Claude copy button stays as an alternative). Keys are stored only on that device, so set
+it up once on the iPhone app and once on the laptop if you use both.
+
+| Provider | Free key | Default model | Notes |
+|---|---|---|---|
+| Groq | https://console.groq.com/keys | `qwen/qwen3-32b` | No card, very fast, ~1,000 requests/day |
+| Google Gemini | https://aistudio.google.com/apikey | `gemini-3-flash-preview` | Strong Arabic; free-tier data may be used by Google |
+| OpenRouter | https://openrouter.ai/keys | `openrouter/free` | Many free models (IDs end in `:free`); 50 requests/day |
+| Ollama | none | `qwen3:8b` | Runs on your own computer |
+
+### Ollama (local Qwen)
+1. Install Ollama, then `ollama pull qwen3:8b`.
+2. Allow the website to call it: set the environment variable `OLLAMA_ORIGINS=https://yehia-96.github.io`
+   (Windows: System → Environment Variables), then restart Ollama.
+3. In the app on the **same computer**, choose Ollama — the default address `http://localhost:11434/v1` works.
+4. From the **iPhone**: the site is https, so it can't call `http://<pc-ip>:11434`. Expose Ollama through an https
+   tunnel (e.g. `cloudflared tunnel --url http://localhost:11434`) and use `https://<tunnel-address>/v1` as the API
+   address. The computer must be on.
 
 ## Local development
 ```bash

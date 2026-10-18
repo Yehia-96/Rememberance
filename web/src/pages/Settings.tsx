@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import AiSettingsCard from '../components/AiSettingsCard'
 import TopBar from '../components/TopBar'
 import { getSaveAudio, setSaveAudio } from '../lib/format'
 import { supabase } from '../lib/supabase'
@@ -28,6 +29,8 @@ export default function Settings({ email }: { email: string }) {
             }}
           />
         </label>
+
+        <AiSettingsCard />
 
         <div className="card">
           <div className="muted small">Signed in as</div>

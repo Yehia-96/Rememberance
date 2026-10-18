@@ -1,24 +1,11 @@
 import { useEffect, useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import TopBar from '../components/TopBar'
 import { deleteRecording, getCategory, getRecording, signedUrl, updateRecording } from '../lib/api'
 import { formatDate, formatDuration } from '../lib/format'
+import { aiReady, getAiSettings, providerFor, summarizeWithApi } from '../lib/ai'
+import { claudePastePrompt } from '../lib/prompt'
 import type { Category, Recording } from '../lib/types'
-
-function claudePrompt(transcript: string, categoryName: string) {
-  const focus =
-    categoryName.toLowerCase() === 'business'
-      ? 'Prioritise decisions, action items (who / what / when), numbers and open questions.'
-      : categoryName.toLowerCase() === 'homework'
-        ? 'Prioritise the main concepts, definitions, steps, and anything to review or submit.'
-        : `This note belongs to my "${categoryName}" category.`
-  return `Turn this voice-note transcript into short bullet-point notes.
-It's mostly Egyptian Arabic (sometimes mixed with English) from speech recognition, so it may contain mistakes and filler words — infer what I meant.
-Write the bullets in the same language I spoke. Output only the bullets, one per line, each starting with "• ". ${focus}
-
-Transcript:
-${transcript}`
-}
 
 export default function RecordingPage() {
   const { id = '' } = useParams()
@@ -32,6 +19,8 @@ export default function RecordingPage() {
   const [copied, setCopied] = useState(false)
   const [editingSummary, setEditingSummary] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [summarizing, setSummarizing] = useState(false)
+  const [ai] = useState(getAiSettings)
 
   useEffect(() => {
     getRecording(id).then(async (r) => {
@@ -75,10 +64,26 @@ export default function RecordingPage() {
   function copyForClaude() {
     // Both calls must start synchronously inside the tap, or iOS Safari blocks them.
     navigator.clipboard
-      .writeText(claudePrompt(current.transcript, category?.name ?? ''))
+      .writeText(claudePastePrompt(current.transcript, category?.name ?? ''))
       .then(() => setCopied(true))
       .catch(() => setError('Could not copy to the clipboard.'))
     window.open('https://claude.ai/new', '_blank')
+  }
+
+  async function summarizeApi() {
+    if (!aiReady(ai)) return
+    setSummarizing(true)
+    setError(null)
+    try {
+      const summary = await summarizeWithApi(ai, current.transcript, category?.name ?? '')
+      await patch({ summary })
+      setSummaryDraft(summary)
+      setEditingSummary(false)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e))
+    } finally {
+      setSummarizing(false)
+    }
   }
 
   async function remove() {
@@ -130,9 +135,16 @@ export default function RecordingPage() {
         <div className="section-header">
           <h2>✨ Key points</h2>
           {current.summary && !editingSummary ? (
-            <button className="link" onClick={() => setEditingSummary(true)}>
-              Edit
-            </button>
+            <div className="row">
+              {aiReady(ai) ? (
+                <button className="link" onClick={summarizeApi} disabled={summarizing}>
+                  {summarizing ? '…' : 'Regenerate'}
+                </button>
+              ) : null}
+              <button className="link" onClick={() => setEditingSummary(true)}>
+                Edit
+              </button>
+            </div>
           ) : null}
         </div>
         {current.summary && !editingSummary ? (
@@ -142,12 +154,32 @@ export default function RecordingPage() {
         ) : null}
         {!current.summary || editingSummary ? (
           <div className="stack">
-            <button className="primary" onClick={copyForClaude} disabled={!current.transcript.trim()}>
-              {copied ? '✓ Copied — paste it in Claude' : 'Summarize with Claude'}
+            {aiReady(ai) ? (
+              <>
+                <button className="primary" onClick={summarizeApi} disabled={summarizing || !current.transcript.trim()}>
+                  {summarizing ? 'Summarizing…' : '✨ Summarize'}
+                </button>
+                <p className="muted small">
+                  Uses {providerFor(ai.provider).label} · {ai.model}
+                </p>
+              </>
+            ) : null}
+            <button
+              className={aiReady(ai) ? 'secondary' : 'primary'}
+              onClick={copyForClaude}
+              disabled={!current.transcript.trim()}
+            >
+              {copied ? '✓ Copied — paste it in Claude' : 'Summarize with Claude (copy)'}
             </button>
             <p className="muted small">
-              Copies the transcript with instructions and opens claude.ai (uses your Claude plan, free). Paste Claude's
-              bullets below.
+              Copies the transcript with instructions and opens claude.ai (uses your Claude plan). Paste Claude's bullets
+              below.
+              {aiReady(ai) ? null : (
+                <>
+                  {' '}
+                  For one-tap summaries, set up a free AI in <Link to="/settings">Settings</Link>.
+                </>
+              )}
             </p>
             {showSummaryEditor || editingSummary ? (
               <>
