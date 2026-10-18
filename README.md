@@ -42,13 +42,13 @@ installed on the iPhone with **Safari → Share → Add to Home Screen**.
 3. Allow the microphone when asked.
 
 ## AI summaries (free)
-In the app: **Settings → AI summaries** → pick a provider, paste a key, **Test**, **Save**. Recordings then get a one-tap
+In the app: **Settings → AI summaries** → pick a provider, paste a key, **Load models** to choose from the models your key can use, **Test**, **Save**. Recordings then get a one-tap
 **✨ Summarize** button (the Claude copy button stays as an alternative). Keys are stored only on that device, so set
 it up once on the iPhone app and once on the laptop if you use both.
 
 | Provider | Free key | Default model | Notes |
 |---|---|---|---|
-| Groq | https://console.groq.com/keys | `qwen/qwen3-32b` | No card, very fast, ~1,000 requests/day |
+| Groq | https://console.groq.com/keys | `openai/gpt-oss-120b` | No card, very fast. Qwen is available as a preview model |
 | Google Gemini | https://aistudio.google.com/apikey | `gemini-3-flash-preview` | Strong Arabic; free-tier data may be used by Google |
 | OpenRouter | https://openrouter.ai/keys | `openrouter/free` | Many free models (IDs end in `:free`); 50 requests/day |
 | Ollama | none | `qwen3:8b` | Runs on your own computer |

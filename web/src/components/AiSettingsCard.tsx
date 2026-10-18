@@ -1,5 +1,14 @@
 import { useState } from 'react'
-import { PROVIDERS, aiReady, getAiSettings, providerFor, setAiSettings, summarizeWithApi, type ProviderId } from '../lib/ai'
+import {
+  PROVIDERS,
+  aiReady,
+  getAiSettings,
+  listModels,
+  providerFor,
+  setAiSettings,
+  summarizeWithApi,
+  type ProviderId,
+} from '../lib/ai'
 
 const TEST_TRANSCRIPT = 'اتفقنا في الاجتماع إن أحمد يبعت العرض للعميل يوم الخميس، والميزانية عشرين ألف جنيه.'
 
@@ -11,6 +20,8 @@ export default function AiSettingsCard() {
   const [apiKey, setApiKey] = useState(saved?.apiKey ?? '')
   const [status, setStatus] = useState<{ kind: 'ok' | 'error' | 'info'; text: string } | null>(null)
   const [testing, setTesting] = useState(false)
+  const [models, setModels] = useState<string[]>([])
+  const [loadingModels, setLoadingModels] = useState(false)
 
   const info = providerFor(provider)
   const current = { provider, baseUrl: baseUrl.trim(), model: model.trim(), apiKey: apiKey.trim() }
@@ -20,7 +31,29 @@ export default function AiSettingsCard() {
     setProvider(id)
     setBaseUrl(p.baseUrl)
     setModel(p.defaultModel)
+    setModels([])
     setStatus(null)
+  }
+
+  async function loadModels() {
+    if (!current.baseUrl || (info.needsKey && !current.apiKey)) {
+      setStatus({ kind: 'error', text: 'Paste your API key first.' })
+      return
+    }
+    setLoadingModels(true)
+    try {
+      const ids = await listModels(current)
+      setModels(ids)
+      setStatus(
+        ids.length
+          ? { kind: 'info', text: `${ids.length} models available — pick one above.` }
+          : { kind: 'error', text: 'No chat models found for this key.' },
+      )
+    } catch (e) {
+      setStatus({ kind: 'error', text: e instanceof Error ? e.message : String(e) })
+    } finally {
+      setLoadingModels(false)
+    }
   }
 
   function save() {
@@ -89,7 +122,22 @@ export default function AiSettingsCard() {
       ) : null}
 
       <label className="label">Model</label>
-      <input value={model} onChange={(e) => setModel(e.target.value)} autoCapitalize="none" spellCheck={false} />
+      {models.length ? (
+        <select value={models.includes(model) ? model : ''} onChange={(e) => setModel(e.target.value)}>
+          {models.includes(model) ? null : <option value="">Choose a model…</option>}
+          {models.map((m) => (
+            <option key={m} value={m}>
+              {m}
+            </option>
+          ))}
+        </select>
+      ) : null}
+      <div className="row">
+        <input className="grow" value={model} onChange={(e) => setModel(e.target.value)} autoCapitalize="none" spellCheck={false} />
+        <button className="secondary" onClick={loadModels} disabled={loadingModels}>
+          {loadingModels ? '…' : 'Load models'}
+        </button>
+      </div>
 
       <label className="label">API address</label>
       <input value={baseUrl} onChange={(e) => setBaseUrl(e.target.value)} autoCapitalize="none" spellCheck={false} />

@@ -18,10 +18,10 @@ export const PROVIDERS: Provider[] = [
     id: 'groq',
     label: 'Groq (free)',
     baseUrl: 'https://api.groq.com/openai/v1',
-    defaultModel: 'qwen/qwen3-32b',
+    defaultModel: 'openai/gpt-oss-120b',
     needsKey: true,
     keyUrl: 'https://console.groq.com/keys',
-    note: 'Free, no card. Very fast. Other good models: llama-3.3-70b-versatile, openai/gpt-oss-120b.',
+    note: 'Free, no card. Very fast. Tap “Load models” to see what your key can use (e.g. llama-3.3-70b-versatile, or the preview Qwen model).',
   },
   {
     id: 'gemini',
@@ -66,7 +66,11 @@ const STORAGE_KEY = 'rememberance.ai'
 export function getAiSettings(): AiSettings | null {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
-    return raw ? (JSON.parse(raw) as AiSettings) : null
+    if (!raw) return null
+    const s = JSON.parse(raw) as AiSettings
+    // Groq retired this model; move saved settings to the current default.
+    if (s.provider === 'groq' && s.model === 'qwen/qwen3-32b') s.model = providerFor('groq').defaultModel
+    return s
   } catch {
     return null
   }
@@ -105,7 +109,7 @@ export async function summarizeWithApi(s: AiSettings, transcript: string, catego
     ],
   }
   // Groq can hide Qwen3's reasoning server-side.
-  if (s.provider === 'groq' && s.model.includes('qwen3')) body.reasoning_format = 'hidden'
+  if (s.provider === 'groq' && s.model.includes('qwen')) body.reasoning_format = 'hidden'
 
   const headers: Record<string, string> = { 'Content-Type': 'application/json' }
   if (s.apiKey) headers.Authorization = `Bearer ${s.apiKey}`
@@ -138,4 +142,26 @@ export async function summarizeWithApi(s: AiSettings, transcript: string, catego
   const text = cleanOutput(data?.choices?.[0]?.message?.content ?? '')
   if (!text) throw new Error('The AI returned an empty answer — try again or pick another model.')
   return text
+}
+
+/** Lists the model IDs the key can use, via the OpenAI-compatible GET /models endpoint. */
+export async function listModels(s: Pick<AiSettings, 'provider' | 'baseUrl' | 'apiKey'>): Promise<string[]> {
+  const headers: Record<string, string> = {}
+  if (s.apiKey) headers.Authorization = `Bearer ${s.apiKey}`
+  let res: Response
+  try {
+    res = await fetch(`${s.baseUrl.replace(/\/+$/, '')}/models`, { headers })
+  } catch {
+    throw new Error('Network error while loading models.')
+  }
+  const data = await res.json().catch(() => null)
+  if (!res.ok) throw new Error(`Could not load models (${res.status}): ${data?.error?.message ?? res.statusText}`)
+  let ids: string[] = (data?.data ?? data?.models ?? []).map((m: { id?: string; name?: string }) =>
+    String(m.id ?? m.name ?? '').replace(/^models\//, ''),
+  )
+  ids = ids.filter(Boolean)
+  // Hide non-chat models (speech, safety classifiers, embeddings, image/audio).
+  ids = ids.filter((id) => !/whisper|orpheus|guard|safeguard|embed|tts|imagen|veo|aqa|audio|image/i.test(id))
+  if (s.provider === 'openrouter') ids = ids.filter((id) => id.endsWith(':free') || id === 'openrouter/free')
+  return [...new Set(ids)].sort()
 }
