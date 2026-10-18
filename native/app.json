@@ -1,0 +1,59 @@
+{
+  "expo": {
+    "name": "Rememberance",
+    "slug": "Rememberance",
+    "scheme": "rememberance",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.yehia.rememberance"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#E6F4FE",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-sqlite",
+      "expo-secure-store",
+      [
+        "expo-audio",
+        {
+          "microphonePermission": "Rememberance records your voice to transcribe it."
+        }
+      ],
+      [
+        "expo-speech-recognition",
+        {
+          "microphonePermission": "Rememberance records your voice to transcribe it.",
+          "speechRecognitionPermission": "Rememberance turns your Arabic speech into text."
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Rememberance can tag a recording with where it was made."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Rememberance can attach a photo to a recording.",
+          "cameraPermission": "Rememberance can take a photo to attach to a recording."
+        }
+      ],
+      "expo-asset"
+    ]
+  }
+}
